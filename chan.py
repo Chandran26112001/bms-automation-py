@@ -1,30 +1,21 @@
 import requests
 import json
-import httpx
-import uuid
 import cloudscraper
 import time
 import winsound
+import asyncio
 
-ACCESS_TOKEN = "EAAPtaG2c554BPIZBpzJ04h3AenkMs754SFugSU1tmQqdQdwuhHXDYF1VWPWOPZBs9kqXrWa8YVGHtsTqK36iYKTofwZAjZBmekcMhYIWkqLAbKjzX6XIPP9ME11OQFX1mBwIMAKwxGKzaRDWfSWpGfyOmoSl0flj9j7ORjrMdEARD4SlbFqBZB0XTs3ZC9DZCYwmQZDZD"
-PHONE_NUMBER_ID = "731071996758445"
-TO_NUMBER = "916383438324"
-whatsappUrl = f"https://graph.facebook.com/v22.0/{PHONE_NUMBER_ID}/messages"
-headers = {
-    "Authorization": f"Bearer {ACCESS_TOKEN}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "messaging_product": "whatsapp",
-    "to": TO_NUMBER,
-    "type": "template",
-    "template": {
-        "name": "hello_world",
-        "language": {
-            "code": "en_US"
-        }
-    }
-}
+from telethon import TelegramClient, errors
+
+tele_api_id = 10048584
+tele_api_hash = "57155257e08449b92f3e9372021e4399"
+
+RECIPIENTS = [
+    '+916380998663',
+    '+919688911442',
+    '+919080597620',
+    '+919361330948'
+]
 
 def get_json_from_text(url, start_text, end_text):
     scraper = cloudscraper.create_scraper()
@@ -53,10 +44,9 @@ def get_json_from_text(url, start_text, end_text):
     return json_obj
 
 def getShowTimesForTheatreCode(theatreCode, jsonObj):
-    #print(jsonObj["showtimesByEvent"]["showDates"])
-    if jsonObj is None or jsonObj["showtimesByEvent"]["showDates"] is None or jsonObj["showtimesByEvent"]["showDates"].get("20250814") is None:
+    if jsonObj is None or jsonObj["showtimesByEvent"]["showDates"] is None or jsonObj["showtimesByEvent"]["showDates"].get("20260106") is None:
         return []
-    showTimeWidgets = jsonObj["showtimesByEvent"]["showDates"]["20250814"]["dynamic"]["data"]["showtimeWidgets"]
+    showTimeWidgets = jsonObj["showtimesByEvent"]["showDates"]["20260106"]["dynamic"]["data"]["showtimeWidgets"]
     result = next((item for item in showTimeWidgets if item.get('type') == 'groupList'), None)
     data = result['data'][0]['data']
     theatre = next((item for item in data if item['additionalData']['venueCode'] == theatreCode), None)
@@ -65,29 +55,80 @@ def getShowTimesForTheatreCode(theatreCode, jsonObj):
     showTimes = [item.get('title') for item in theatre['showtimes']]
     return showTimes
 
-if __name__ == "__main__":
+def push(text):
+    requests.post(
+        "https://api.pushover.net/1/messages.json",
+        data={
+            "token": "ad8cfuv7v5v3ivekv99aooizirezbv",
+            "user": "uh7hzgek2n6yyt3v6a79pi9t5mgvay",
+            "message": text,
+        }
+    )
+
+async def sendTeleMessage(url):
+    # Create the client and connect
+    client = TelegramClient("SESSION_NAME", tele_api_id, tele_api_hash)
+    await client.start()
+    print(f"Logged in as: {(await client.get_me()).first_name}")
+    for user in RECIPIENTS:
+        try:
+            print(f"Sending to {user}...")
+            await client.send_message(user, "BOSS KESARI READY!!! Link: "+url)
+            print(f"✅ Sent to {user}")
+            await asyncio.sleep(2)
+
+        except errors.FloodWaitError as e:
+            print(f"⚠️ Rate limited. Must wait {e.seconds} seconds.")
+            await asyncio.sleep(e.seconds)
+        except ValueError:
+            print(f"❌ Could not find user: {user}")
+        except Exception as e:
+            print(f"❌ Error sending to {user}: {e}")
+
+    await client.disconnect()
+
+async def main():
+    client = TelegramClient("SESSION_NAME", tele_api_id, tele_api_hash)
+    await client.start()
+    print(f"Logged in as: {(await client.get_me()).first_name}")
     loop = 1
-    while True:
-        print("Loop count: "+str(loop))
-        url = "https://in.bookmyshow.com/movies/chennai/coolie/buytickets/ET00395817/20250814"
-        start_marker = "window.__INITIAL_STATE__ = "
-        end_marker = """}}}</script><script>"""
-        theatreCodeList = ["TVHP"]
-        json_obj = get_json_from_text(url, start_marker, end_marker)
-        if json_obj is None:
-            continue
-        for theatreCode in theatreCodeList:
-            timingList = getShowTimesForTheatreCode(theatreCode, json_obj)
-            print(f"Found {timingList} for {theatreCode}")
-            for timing in timingList:
-                if 8 < int(timing[:2]) < 12 and timing[-2:] == "AM":
-                    print("Found "+timing+" in "+theatreCode)
-                    response = requests.post(whatsappUrl, headers=headers, json=payload)
-                    print("Status code:", response.status_code)
-                    winsound.Beep(1000, 50000)
-                break
-        loop += 1
-        time.sleep(1)
+    try:
+        while True:
+            print("Loop count: " + str(loop))
+            url = "https://in.bookmyshow.com/movies/chennai/45/buytickets/ET00440377/20260106"
+            start_marker = "window.__INITIAL_STATE__ = "
+            end_marker = "}}}</script><script>"
+            theatreCodeList = ["TVHP", "INPR", "MAYJ", "CBMC", "TVHP", "INTO", "ACON", "MCSK"]
+            json_obj = get_json_from_text(url, start_marker, end_marker)
+            print(json_obj)
+            if json_obj is None:
+                continue
+            for theatreCode in theatreCodeList:
+                timingList = getShowTimesForTheatreCode(theatreCode, json_obj)
+                print(f"Found {timingList} for {theatreCode}")
+                for timing in timingList:
+                    print(timing)
+                    if 8 < int(timing[:2]) < 12 and timing[-2:] == "AM":
+                        print("Found " + timing + " in " + theatreCode)
+                        push("Project Kesari Initiated. Link: " + url)
+                        for user in RECIPIENTS:
+                            try:
+                                print(f"Sending to {user}...")
+                                await client.send_message(user, "BOSS KESARI READY!!! Link: " + url)
+                                print(f"✅ Sent to {user}")
+                            except Exception as e:
+                                print(f"❌ Error sending to {user}: {e}")
+                        winsound.Beep(1000, 50000)
+                    break
+            loop += 1
+            time.sleep(10)
+    except KeyboardInterrupt:
+        print("Stopping...")
+    finally:
+        await client.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 
@@ -97,3 +138,4 @@ if __name__ == "__main__":
 # TVHP - Vijay Park
 # INTO - Marina Mall
 # ACON - AGS Navalur
+# MCSK - Miraj
