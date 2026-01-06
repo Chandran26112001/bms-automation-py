@@ -7,14 +7,11 @@ import asyncio
 
 from telethon import TelegramClient, errors
 
-tele_api_id = 10048584
-tele_api_hash = "57155257e08449b92f3e9372021e4399"
+tele_api_id = <YOUR_TELEGRAM_APP_ID>
+tele_api_hash = <YOUR_TELEGRAM_HASH_HERE>
 
 RECIPIENTS = [
-    '+916380998663',
-    '+919688911442',
-    '+919080597620',
-    '+919361330948'
+    '+91xxxxxxxxxx' # List of phone numbers or Contact names as you saved in Telegram.
 ]
 
 def get_json_from_text(url, start_text, end_text):
@@ -44,9 +41,9 @@ def get_json_from_text(url, start_text, end_text):
     return json_obj
 
 def getShowTimesForTheatreCode(theatreCode, jsonObj):
-    if jsonObj is None or jsonObj["showtimesByEvent"]["showDates"] is None or jsonObj["showtimesByEvent"]["showDates"].get("20260106") is None:
+    if jsonObj is None or jsonObj["showtimesByEvent"]["showDates"] is None or jsonObj["showtimesByEvent"]["showDates"].get("20260106") is None: # Change the 20260106 date format to desired one
         return []
-    showTimeWidgets = jsonObj["showtimesByEvent"]["showDates"]["20260106"]["dynamic"]["data"]["showtimeWidgets"]
+    showTimeWidgets = jsonObj["showtimesByEvent"]["showDates"]["20260106"]["dynamic"]["data"]["showtimeWidgets"] # Change the 20260106 date format to desired one
     result = next((item for item in showTimeWidgets if item.get('type') == 'groupList'), None)
     data = result['data'][0]['data']
     theatre = next((item for item in data if item['additionalData']['venueCode'] == theatreCode), None)
@@ -59,8 +56,8 @@ def push(text):
     requests.post(
         "https://api.pushover.net/1/messages.json",
         data={
-            "token": "ad8cfuv7v5v3ivekv99aooizirezbv",
-            "user": "uh7hzgek2n6yyt3v6a79pi9t5mgvay",
+            "token": <PUSHOVER_TOKEN>,
+            "user": <PUSHOVER_USER>,
             "message": text,
         }
     )
@@ -95,10 +92,10 @@ async def main():
     try:
         while True:
             print("Loop count: " + str(loop))
-            url = "https://in.bookmyshow.com/movies/chennai/45/buytickets/ET00440377/20260106"
+            url = "https://in.bookmyshow.com/movies/chennai/45/buytickets/ET00440377/20260106" # Change this URL to the desired BookMyShow movie page
             start_marker = "window.__INITIAL_STATE__ = "
             end_marker = "}}}</script><script>"
-            theatreCodeList = ["TVHP", "INPR", "MAYJ", "CBMC", "TVHP", "INTO", "ACON", "MCSK"]
+            theatreCodeList = ["TVHP", "INPR", "MAYJ", "CBMC", "TVHP", "INTO", "ACON", "MCSK"] # Edit this list to alert for specific theatre. For codes check json response
             json_obj = get_json_from_text(url, start_marker, end_marker)
             print(json_obj)
             if json_obj is None:
