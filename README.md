@@ -1,2 +1,2 @@
 # bms-automation-py
-Python code to look for show availability for a specific film at specified show times and to notify.
+Python script which checks for BookMyShow API for a particular movie within particular show timings and notify you via various available options (Telegram/Pushover/Alarm).
